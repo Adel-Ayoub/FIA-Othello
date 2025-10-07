@@ -139,7 +139,7 @@ impl Game {
             let first_player = Player::Black;
 
             self.statistics
-                .add_datum(format!("Human vs Human"), first_player, &outcome);
+                .add_datum("Human vs Human".to_string(), first_player, &outcome);
 
             self.can_take_statistics = false;
         }
@@ -280,10 +280,8 @@ impl eframe::App for Game {
                     }
 
                     // handle mouse clicks to make moves
-                    if ui.input(|i| i.pointer.any_down()) {
-                        if row < Board::SIZE && col < Board::SIZE && is_valid_move {
-                            assert!(self.make_move((row, col), player));
-                        }
+                    if ui.input(|i| i.pointer.any_down()) && row < Board::SIZE && col < Board::SIZE && is_valid_move {
+                        assert!(self.make_move((row, col), player));
                     }
                 }
                 Phase::Win(_) | Phase::Tie => {

@@ -32,21 +32,15 @@ impl Display for Statistic {
     }
 }
 
+#[derive(Default)]
 pub struct Statistics {
     pub data: HashMap<String, Statistic>,
 }
 
-impl Default for Statistics {
-    fn default() -> Self {
-        Statistics {
-            data: HashMap::new(),
-        }
-    }
-}
 
 impl Statistics {
     pub fn add_datum(&mut self, name: String, player: Player, outcome: &Outcome) {
-        let statistic = self.data.entry(name).or_insert(Statistic::default());
+        let statistic = self.data.entry(name).or_default();
         let (win_value, tie_value, lose_value) = match *outcome {
             Outcome::Won(winning_player) => {
                 if player == winning_player {

@@ -11,6 +11,7 @@ pub enum Outcome {
 type Move = (usize, usize);
 
 // not thread-safe, every thread needs its own Referee
+#[derive(Default)]
 pub struct Referee {
     // a cache for the result of find_adjacent_opposites
     adjacent_opposites: CellList,
@@ -19,14 +20,6 @@ pub struct Referee {
     flip_cells: CellList,
 }
 
-impl Default for Referee {
-    fn default() -> Self {
-        Referee {
-            adjacent_opposites: CellList::default(),
-            flip_cells: CellList::default(),
-        }
-    }
-}
 
 impl Referee {
     pub fn validate_move(&mut self, board: &Board, player: Player, maybe_move: Move) -> bool {
@@ -232,19 +225,17 @@ impl Referee {
                     || new_col >= Board::SIZE as i32
                 {
                     false
+                } else if Self::cast_ray_recursive(
+                    board,
+                    player,
+                    (new_row as usize, new_col as usize),
+                    (row_direction, col_direction),
+                    result,
+                ) {
+                    result.push_back((row, col));
+                    true
                 } else {
-                    if Self::cast_ray_recursive(
-                        board,
-                        player,
-                        (new_row as usize, new_col as usize),
-                        (row_direction, col_direction),
-                        result,
-                    ) {
-                        result.push_back((row, col));
-                        true
-                    } else {
-                        false
-                    }
+                    false
                 }
             }
         }
