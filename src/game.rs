@@ -87,33 +87,6 @@ impl Game {
             .find_all_valid_moves(&self.board, Player::Black, &mut self.valid_moves);
         self.is_board_untouched = true;
         self.can_take_statistics = true;
-        self.set_current_player_turn(Player::Black);
-    }
-
-    fn set_current_player_turn(&mut self, player: Player) {
-        // Assume the game has NOT ended.
-        self.current_phase = Phase::Turn(player);
-
-        if self.bot != player {
-            return;
-        }
-        self.play_bot_turn(player);
-    }
-
-    fn play_bot_turn(&mut self, bot_player: Player) {
-        self.referee
-            .find_all_valid_moves(&self.board, bot_player, &mut self.valid_moves);
-        // Pick one of valid moves
-        let board = self.board.clone();
-        let valid_moves = self.valid_moves.clone();
-
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let best_move = calculate_best_move(board, valid_moves, bot_player);
-            tx.send(best_move).ok();
-        });
-
-        self.pending_bot_move = Some(rx);
     }
 
     fn is_currently_bot_turn(&mut self) -> bool {
@@ -139,7 +112,7 @@ impl Game {
                 .find_all_valid_moves(&self.board, opponent, &mut self.valid_moves)
             {
                 // switch players if the other player has valid moves
-                self.set_current_player_turn(opponent);
+                self.current_phase = Phase::Turn(opponent);
             } else if !self
                 .referee
                 .find_all_valid_moves(&self.board, player, &mut self.valid_moves)
@@ -158,6 +131,8 @@ impl Game {
                 if self.options.pause_at_win {
                     self.scheduled_restart += Duration::from_secs(1);
                 }
+            } else {
+                println!("Replay turn");
             }
 
             if self.is_board_untouched {
@@ -194,6 +169,18 @@ impl eframe::App for Game {
                         self.make_move(bot_move, player);
                         self.pending_bot_move = None; // Clear after receiving
                     }
+                } else if self.is_currently_bot_turn() {
+                    self.referee
+                        .find_all_valid_moves(&self.board, player, &mut self.valid_moves);
+                    let board = self.board.clone();
+                    let valid_moves = self.valid_moves.clone();
+
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    std::thread::spawn(move || {
+                        let best_move = calculate_best_move(board, valid_moves, player);
+                        tx.send(best_move).ok();
+                    });
+                    self.pending_bot_move = Some(rx);
                 }
             }
             _ => {}
