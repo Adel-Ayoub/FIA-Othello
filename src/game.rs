@@ -1,3 +1,4 @@
+use crate::ai::calculate_best_move;
 use crate::board::Board;
 use crate::board::Cell;
 use crate::board::Player;
@@ -6,9 +7,10 @@ use crate::referee::Outcome;
 use crate::referee::Referee;
 use crate::statistics::Statistics;
 use eframe::egui;
+use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
-type Move = (usize, usize);
+pub type Move = (usize, usize);
 
 #[derive(Clone, Copy)]
 enum Phase {
@@ -48,6 +50,8 @@ pub struct Game {
     is_board_untouched: bool,
     can_take_statistics: bool,
     statistics: Statistics,
+    bot: Player,
+    pending_bot_move: Option<Receiver<Move>>,
 }
 
 impl Default for Game {
@@ -63,6 +67,8 @@ impl Default for Game {
             is_board_untouched: false,
             can_take_statistics: false,
             statistics: Statistics::default(),
+            bot: Player::White,
+            pending_bot_move: None,
         };
 
         game.reset();
@@ -73,6 +79,7 @@ impl Default for Game {
 
 impl Game {
     // call this from the UI thread
+    // Initialize the game
     fn reset(&mut self) {
         self.board = Board::default();
         self.current_phase = Phase::Turn(Player::Black);
@@ -80,9 +87,41 @@ impl Game {
             .find_all_valid_moves(&self.board, Player::Black, &mut self.valid_moves);
         self.is_board_untouched = true;
         self.can_take_statistics = true;
+        self.set_current_player_turn(Player::Black);
+    }
+
+    fn set_current_player_turn(&mut self, player: Player) {
+        // Assume the game has NOT ended.
+        self.current_phase = Phase::Turn(player);
+
+        if self.bot != player {
+            return;
+        }
+        self.play_bot_turn(player);
+    }
+
+    fn play_bot_turn(&mut self, bot_player: Player) {
+        self.referee
+            .find_all_valid_moves(&self.board, bot_player, &mut self.valid_moves);
+        // Pick one of valid moves
+        let board = self.board.clone();
+        let valid_moves = self.valid_moves.clone();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let best_move = calculate_best_move(board, valid_moves, bot_player);
+            tx.send(best_move).ok();
+        });
+
+        self.pending_bot_move = Some(rx);
+    }
+
+    fn is_currently_bot_turn(&mut self) -> bool {
+        matches!(self.current_phase,Phase::Turn(p) if p == self.bot)
     }
 
     // call this from the UI thread
+    // Make a move by a player
     fn make_move(&mut self, next_move: Move, player: Player) -> bool {
         // Validate and collect flip cells for ai move
         if self.referee.find_flip_cells_for_move(
@@ -100,7 +139,7 @@ impl Game {
                 .find_all_valid_moves(&self.board, opponent, &mut self.valid_moves)
             {
                 // switch players if the other player has valid moves
-                self.current_phase = Phase::Turn(opponent);
+                self.set_current_player_turn(opponent);
             } else if !self
                 .referee
                 .find_all_valid_moves(&self.board, player, &mut self.valid_moves)
@@ -148,6 +187,18 @@ impl Game {
 
 impl eframe::App for Game {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        match self.current_phase {
+            Phase::Turn(player) => {
+                if let Some(rx) = &self.pending_bot_move {
+                    if let Ok(bot_move) = rx.try_recv() {
+                        self.make_move(bot_move, player);
+                        self.pending_bot_move = None; // Clear after receiving
+                    }
+                }
+            }
+            _ => {}
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             // UI drawing
             let rect = ui.available_rect_before_wrap();
@@ -281,6 +332,7 @@ impl eframe::App for Game {
 
                     // handle mouse clicks to make moves
                     if ui.input(|i| i.pointer.any_down())
+                        && !self.is_currently_bot_turn()
                         && row < Board::SIZE
                         && col < Board::SIZE
                         && is_valid_move

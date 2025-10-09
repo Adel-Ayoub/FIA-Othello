@@ -4,6 +4,7 @@ type Move = (usize, usize);
 
 // Common utility types
 // a cache for re-use to avoid unnecesary memory allocations
+#[derive(Clone)]
 pub struct CellList {
     pub list: [Move; 64],
     pub count: usize,

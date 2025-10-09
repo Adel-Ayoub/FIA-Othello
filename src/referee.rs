@@ -109,6 +109,24 @@ impl Referee {
         }
     }
 
+    pub fn get_board_after_move(
+        board: &Board,
+        player: Player,
+        (row, col): Move,
+        flip_cells: &CellList,
+    ) -> Board {
+        // Place the current player's piece
+        let mut new_board = board.clone();
+        new_board.grid[row][col] = Cell::Taken(player);
+
+        // flip cells
+        for (flip_row, flip_col) in flip_cells.iter() {
+            new_board.grid[flip_row][flip_col] = Cell::Taken(player);
+        }
+
+        new_board
+    }
+
     // internal
 
     fn find_flip_cells_for_move_internal(
