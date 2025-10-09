@@ -20,7 +20,6 @@ pub struct Referee {
     flip_cells: CellList,
 }
 
-
 impl Referee {
     pub fn validate_move(&mut self, board: &Board, player: Player, maybe_move: Move) -> bool {
         Self::find_flip_cells_for_move_internal(

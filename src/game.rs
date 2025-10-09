@@ -280,7 +280,11 @@ impl eframe::App for Game {
                     }
 
                     // handle mouse clicks to make moves
-                    if ui.input(|i| i.pointer.any_down()) && row < Board::SIZE && col < Board::SIZE && is_valid_move {
+                    if ui.input(|i| i.pointer.any_down())
+                        && row < Board::SIZE
+                        && col < Board::SIZE
+                        && is_valid_move
+                    {
                         assert!(self.make_move((row, col), player));
                     }
                 }

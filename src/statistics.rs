@@ -37,7 +37,6 @@ pub struct Statistics {
     pub data: HashMap<String, Statistic>,
 }
 
-
 impl Statistics {
     pub fn add_datum(&mut self, name: String, player: Player, outcome: &Outcome) {
         let statistic = self.data.entry(name).or_default();
