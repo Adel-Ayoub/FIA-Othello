@@ -157,12 +157,10 @@ impl Referee {
 
         for other_row in start_row..end_row {
             for other_col in start_col..end_col {
-                if other_row != row || other_col != col {
-                    if let Cell::Taken(other_disk) = board.grid[other_row][other_col] {
-                        if other_disk != player {
-                            result.push_back((other_row, other_col));
-                        }
-                    }
+                if (other_row != row || other_col != col)
+                    && matches!(board.grid[other_row][other_col], Cell::Taken(p) if p != player)
+                {
+                    result.push_back((other_row, other_col));
                 }
             }
         }
