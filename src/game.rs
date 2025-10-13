@@ -131,8 +131,6 @@ impl Game {
                 if self.options.pause_at_win {
                     self.scheduled_restart += Duration::from_secs(1);
                 }
-            } else {
-                println!("Replay turn");
             }
 
             if self.is_board_untouched {
