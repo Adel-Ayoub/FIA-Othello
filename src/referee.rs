@@ -99,18 +99,25 @@ impl Referee {
         }
     }
 
-    pub fn find_and_apply_next_valid_move(&mut self, board: &mut Board, player: Player, (start_row, start_col): Move) -> Move {
-
+    pub fn find_and_apply_next_valid_move(
+        &mut self,
+        board: &mut Board,
+        player: Player,
+        (start_row, start_col): Move,
+    ) -> Move {
         let mut row = start_row;
         let mut col = start_col;
         while row < Board::SIZE {
             while col < Board::SIZE {
-
-                if Self::find_flip_cells_for_move_internal(board, player, (row, col), &mut self.adjacent_opposites, &mut self.flip_cells) {
-
+                if Self::find_flip_cells_for_move_internal(
+                    board,
+                    player,
+                    (row, col),
+                    &mut self.adjacent_opposites,
+                    &mut self.flip_cells,
+                ) {
                     Self::apply_move(board, player, (row, col), &self.flip_cells);
                     return (row, col);
-
                 }
                 col += 1;
             }
@@ -122,7 +129,6 @@ impl Referee {
     }
 
     pub fn apply_move(board: &mut Board, player: Player, (row, col): Move, flip_cells: &CellList) {
-
         // Place the current player's piece
         board.grid[row][col] = Cell::Taken(player);
 
