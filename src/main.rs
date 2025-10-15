@@ -1,6 +1,7 @@
 mod board;
-mod common;
 mod game;
+mod agent;
+mod common;
 mod referee;
 mod statistics;
 
