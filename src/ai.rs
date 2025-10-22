@@ -8,7 +8,7 @@ pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) 
         * negamax(
             get_board_after_move(&board, player, valid_moves.list[0]),
             player,
-            6,
+            4,
             false,
         );
 
