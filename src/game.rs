@@ -162,17 +162,21 @@ impl eframe::App for Game {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         match self.current_phase {
             Phase::Turn(player) => {
+                // If its bot turn
                 if let Some(rx) = &self.pending_bot_move {
+                    // If it has though out a move, play it
                     if let Ok(bot_move) = rx.try_recv() {
                         self.make_move(bot_move, player);
                         self.pending_bot_move = None; // Clear after receiving
                     }
+                // if its bot turn and it hasn't thinking of a move, make it calculate it
                 } else if self.is_currently_bot_turn() {
                     self.referee
                         .find_all_valid_moves(&self.board, player, &mut self.valid_moves);
                     let board = self.board.clone();
                     let valid_moves = self.valid_moves.clone();
 
+                    // Spawn thread to run move calculation in order to not block the UI.
                     let (tx, rx) = std::sync::mpsc::channel();
                     std::thread::spawn(move || {
                         let best_move = calculate_best_move(board, valid_moves, player);
@@ -185,7 +189,7 @@ impl eframe::App for Game {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // UI drawing
+            // UI drawin
             let rect = ui.available_rect_before_wrap();
             let square_size = rect.width().min(rect.height()) / Board::SIZE as f32;
             let line_width = square_size * 0.01;

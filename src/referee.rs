@@ -156,11 +156,12 @@ impl Referee {
 
         for other_row in start_row..end_row {
             for other_col in start_col..end_col {
-                if other_row != row || other_col != col {
-                    if let Cell::Taken(other_disk) = board.grid[other_row][other_col] {
-                        if other_disk != player {
-                            result.push_back((other_row, other_col));
-                        }
+                if !(other_row != row || other_col != col) {
+                    continue;
+                }
+                if let Cell::Taken(other_disk) = board.grid[other_row][other_col] {
+                    if other_disk != player {
+                        result.push_back((other_row, other_col));
                     }
                 }
             }
@@ -170,6 +171,7 @@ impl Referee {
     }
 
     // expects result to already be filled with adjacent opposites
+    // Returns boolean indicating if there are any flip cells.
     fn find_flip_cells(
         board: &Board,
         player: Player,
@@ -199,8 +201,6 @@ impl Referee {
     /* cast a ray in the checked direction
     the ray is successful if a cell belonging to the player is found
     then all disks in between should be flipped */
-
-    /* this problem lends itself to a recursive approach */
     fn cast_ray_recursive(
         board: &Board,
         player: Player,
@@ -210,10 +210,13 @@ impl Referee {
     ) -> bool {
         match board.grid[row][col] {
             Cell::Empty => false,
+            // If same color as current player, the ray is done, and the current cell will be
+            // flipped
             Cell::Taken(color) if color == player => {
                 result.push_back((row, col));
                 true
             }
+            // Otherwise if taken by opponent, continue casting the ray
             Cell::Taken(_) => {
                 let new_row = row as i32 + row_direction;
                 let new_col = col as i32 + col_direction;
@@ -222,13 +225,13 @@ impl Referee {
                     || new_col < 0
                     || new_col >= Board::SIZE as i32
                 {
-                    false
+                    false // If at the border, then this ray would not cause flips, return false
                 } else if Self::cast_ray_recursive(
                     board,
                     player,
                     (new_row as usize, new_col as usize),
                     (row_direction, col_direction),
-                    result,
+                    result, // Recursively call for the next cell
                 ) {
                     result.push_back((row, col));
                     true
