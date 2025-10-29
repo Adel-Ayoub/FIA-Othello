@@ -51,7 +51,8 @@ pub fn negamax(
     board: Board,
     player: Player,
     depth: u32,
-    flag: bool,
+    previousPlayerPlayed: bool, // Used to detect end of game, if the past player had no moves, and the current
+    // player also doesnt have moves, then we quit (terminal node)
     alpha: Option<f32>,
     beta: Option<f32>,
 ) -> f32 {
@@ -60,16 +61,16 @@ pub fn negamax(
     }
     let mut referee = Referee::default();
     let mut valid_moves = CellList::default();
-    let mut al = alpha;
+    let mut current_alpha = alpha;
 
     referee.find_all_valid_moves(&board, player, &mut valid_moves);
 
     let opp = player.opponent();
     if valid_moves.count == 0 {
-        if flag {
+        if previousPlayerPlayed {
             return calculate_heuristic(board, player);
         } else {
-            return negamax(board, opp, depth - 1, true, al, beta);
+            return negamax(board, opp, depth - 1, true, current_alpha, beta);
         }
     }
     let mut max = None;
@@ -81,25 +82,19 @@ pub fn negamax(
                 opp,
                 depth - 1,
                 false,
-                match beta {
-                    Some(b) => Some(-b),
-                    None => None,
-                },
-                match al {
-                    Some(a) => Some(-a),
-                    None => None,
-                },
+                negate(beta),
+                negate(current_alpha),
             );
 
         if max.is_none() || val > max.unwrap() {
             max = Some(val);
         }
 
-        if al.is_none() || val > al.unwrap() {
-            al = Some(val)
+        if current_alpha.is_none() || val > current_alpha.unwrap() {
+            current_alpha = Some(val)
         }
 
-        if al.is_some() && beta.is_some() && al >= beta {
+        if current_alpha.is_some() && beta.is_some() && current_alpha >= beta {
             if depth > 3 {
                 println!(
                     "Prunned at child {} out of {} and depth {}",
@@ -116,7 +111,6 @@ pub fn negamax(
 }
 
 pub fn calculate_heuristic(board: Board, player: Player) -> f32 {
-    // The heuristic for now is the number of the bot's  pieces
     calculate_weighted_piece_positions(board, player)
 }
 
@@ -150,4 +144,11 @@ pub fn get_board_after_move(board: &Board, player: Player, (row, col): Move) -> 
     }
 
     new_board
+}
+
+fn negate(value: Option<f32>) -> Option<f32> {
+    match value {
+        Some(v) => Some(-v),
+        None => None,
+    }
 }
