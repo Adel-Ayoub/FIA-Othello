@@ -8,8 +8,10 @@ pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) 
         * negamax(
             get_board_after_move(&board, player, valid_moves.list[0]),
             player,
-            4,
+            8,
             false,
+            None,
+            None,
         );
 
     let mut max_index = 0;
@@ -21,6 +23,8 @@ pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) 
                 player.opponent(),
                 4,
                 false,
+                None,
+                None,
             );
 
         if val > max {
@@ -32,12 +36,20 @@ pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) 
     return valid_moves.list[max_index];
 }
 
-pub fn negamax(board: Board, player: Player, depth: u32, flag: bool) -> i32 {
+pub fn negamax(
+    board: Board,
+    player: Player,
+    depth: u32,
+    flag: bool,
+    alpha: Option<i32>,
+    beta: Option<i32>,
+) -> i32 {
     if depth == 0 {
         return calculate_heuristic(board, player) as i32;
     }
     let mut referee = Referee::default();
     let mut valid_moves = CellList::default();
+    let mut al = alpha;
 
     referee.find_all_valid_moves(&board, player, &mut valid_moves);
 
@@ -46,7 +58,7 @@ pub fn negamax(board: Board, player: Player, depth: u32, flag: bool) -> i32 {
         if flag {
             return calculate_heuristic(board, player) as i32;
         } else {
-            return negamax(board, opp, depth - 1, true);
+            return negamax(board, opp, depth - 1, true, al, beta);
         }
     }
     let mut max = None;
@@ -58,10 +70,34 @@ pub fn negamax(board: Board, player: Player, depth: u32, flag: bool) -> i32 {
                 opp,
                 depth - 1,
                 false,
+                match beta {
+                    Some(b) => Some(-b),
+                    None => None,
+                },
+                match al {
+                    Some(a) => Some(-a),
+                    None => None,
+                },
             );
 
         if max.is_none() || val > max.unwrap() {
             max = Some(val);
+        }
+
+        if al.is_none() || val > al.unwrap() {
+            al = Some(val)
+        }
+
+        if al.is_some() && beta.is_some() && al >= beta {
+            if depth > 3 {
+                println!(
+                    "Prunned at child {} out of {} and depth {}",
+                    i + 1,
+                    valid_moves.count,
+                    depth
+                );
+            }
+            break;
         }
     }
 
