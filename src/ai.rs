@@ -1,7 +1,11 @@
+use rand::seq::IndexedRandom;
+
 use crate::board::{Board, Cell, Player};
 use crate::common::CellList;
 use crate::game::Move;
 use crate::referee::Referee;
+
+const MAX_DEPTH: u32 = 7;
 
 const OTHELLO_WEIGHTS: [[i32; 8]; 8] = [
     [7, 2, 5, 4, 4, 5, 2, 7],
@@ -17,16 +21,18 @@ const OTHELLO_WEIGHTS: [[i32; 8]; 8] = [
 pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) -> Move {
     let mut max: Option<f32> = None;
     let mut max_index: Option<usize> = None;
+    let val_list = &mut Vec::default();
 
     for i in 0..valid_moves.count {
         let val = (-1 as f32)
             * negamax(
                 get_board_after_move(&board, player, valid_moves.list[i]),
                 player.opponent(),
-                8,
+                MAX_DEPTH - 1,
                 false,
                 None,
                 None,
+                val_list,
             );
 
         if max_index.is_none() || val > max.unwrap() {
@@ -34,6 +40,16 @@ pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) 
             max_index = Some(i);
         }
     }
+
+    println!(
+        "[{}]",
+        val_list
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    println!("Number of elements {} ", val_list.len());
 
     return valid_moves.list[max_index.unwrap()];
 }
@@ -46,6 +62,7 @@ pub fn negamax(
     // player also doesnt have moves, then we quit (terminal node)
     alpha: Option<f32>,
     beta: Option<f32>,
+    val_list: &mut Vec<f32>,
 ) -> f32 {
     if depth == 0 {
         return calculate_heuristic(board, player);
@@ -61,10 +78,17 @@ pub fn negamax(
         if previous_player_has_played {
             return calculate_heuristic(board, player);
         } else {
-            return negamax(board, opp, depth - 1, true, current_alpha, beta);
+            return negamax(board, opp, depth - 1, true, current_alpha, beta, val_list);
         }
     }
     let mut max = None;
+
+    //if (depth >= MAX_DEPTH - 2) {
+    //    println!(
+    //        "Number of maxm ovies is {}  at depth {}",
+    //        valid_moves.count, depth
+    //    );
+    //}
 
     for i in 0..valid_moves.count {
         let val = (-1 as f32)
@@ -75,7 +99,16 @@ pub fn negamax(
                 false,
                 negate(beta),
                 negate(current_alpha),
+                val_list,
             );
+
+        if depth == MAX_DEPTH - 1 {
+            val_list.push(val);
+            //println!(
+            //    "Adding child move at depth {} with {} out of {}",
+            //    depth, i, valid_moves.count
+            //);
+        }
 
         if max.is_none() || val > max.unwrap() {
             max = Some(val);
@@ -87,12 +120,12 @@ pub fn negamax(
 
         if current_alpha.is_some() && beta.is_some() && current_alpha >= beta {
             if depth > 3 {
-                println!(
-                    "Prunned at child {} out of {} and depth {}",
-                    i + 1,
-                    valid_moves.count,
-                    depth
-                );
+                //println!(
+                //    "Prunned at child {} out of {} and depth {}",
+                //    i + 1,
+                //    valid_moves.count,
+                //    depth
+                //);
             }
             break;
         }
