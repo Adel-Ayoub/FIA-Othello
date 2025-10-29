@@ -3,8 +3,19 @@ use crate::common::CellList;
 use crate::game::Move;
 use crate::referee::Referee;
 
+const OTHELLO_WEIGHTS: [[i32; 8]; 8] = [
+    [7, 2, 5, 4, 4, 5, 2, 7],
+    [2, 1, 3, 3, 3, 3, 1, 2],
+    [5, 3, 5, 5, 5, 5, 3, 5],
+    [4, 3, 5, 6, 6, 5, 3, 4],
+    [4, 3, 5, 6, 6, 5, 3, 4],
+    [5, 3, 5, 5, 5, 5, 3, 5],
+    [2, 1, 3, 3, 3, 3, 1, 2],
+    [7, 2, 5, 4, 4, 5, 2, 7],
+];
+
 pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) -> Move {
-    let mut max = -1
+    let mut max: f32 = (-1 as f32)
         * negamax(
             get_board_after_move(&board, player, valid_moves.list[0]),
             player,
@@ -17,7 +28,7 @@ pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) 
     let mut max_index = 0;
 
     for i in 1..valid_moves.count {
-        let val = -1
+        let val = (-1 as f32)
             * negamax(
                 get_board_after_move(&board, player, valid_moves.list[i]),
                 player.opponent(),
@@ -41,11 +52,11 @@ pub fn negamax(
     player: Player,
     depth: u32,
     flag: bool,
-    alpha: Option<i32>,
-    beta: Option<i32>,
-) -> i32 {
+    alpha: Option<f32>,
+    beta: Option<f32>,
+) -> f32 {
     if depth == 0 {
-        return calculate_heuristic(board, player) as i32;
+        return calculate_heuristic(board, player);
     }
     let mut referee = Referee::default();
     let mut valid_moves = CellList::default();
@@ -56,7 +67,7 @@ pub fn negamax(
     let opp = player.opponent();
     if valid_moves.count == 0 {
         if flag {
-            return calculate_heuristic(board, player) as i32;
+            return calculate_heuristic(board, player);
         } else {
             return negamax(board, opp, depth - 1, true, al, beta);
         }
@@ -64,7 +75,7 @@ pub fn negamax(
     let mut max = None;
 
     for i in 0..valid_moves.count {
-        let val = -1
+        let val = (-1 as f32)
             * negamax(
                 get_board_after_move(&board, player, valid_moves.list[i]),
                 opp,
@@ -101,25 +112,25 @@ pub fn negamax(
         }
     }
 
-    return max.unwrap() as i32;
+    return max.unwrap();
 }
 
-pub fn calculate_heuristic(board: Board, player: Player) -> u32 {
+pub fn calculate_heuristic(board: Board, player: Player) -> f32 {
     // The heuristic for now is the number of the bot's  pieces
-    calculate_num_pieces(board, player)
+    calculate_weighted_piece_positions(board, player)
 }
 
-pub fn calculate_num_pieces(board: Board, player: Player) -> u32 {
+pub fn calculate_weighted_piece_positions(board: Board, player: Player) -> f32 {
     let mut sum = 0;
     for i in 0..Board::SIZE {
         for j in 0..Board::SIZE {
             match board.grid[i][j] {
-                Cell::Taken(p) if p == player => sum = sum + 1,
+                Cell::Taken(p) if p == player => sum = sum + OTHELLO_WEIGHTS[i][j],
                 _ => {}
             }
         }
     }
-    sum
+    sum as f32
 }
 
 pub fn get_board_after_move(board: &Board, player: Player, (row, col): Move) -> Board {
