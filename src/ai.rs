@@ -51,7 +51,7 @@ pub fn negamax(
     board: Board,
     player: Player,
     depth: u32,
-    previousPlayerPlayed: bool, // Used to detect end of game, if the past player had no moves, and the current
+    previous_player_has_played: bool, // Used to detect end of game, if the past player had no moves, and the current
     // player also doesnt have moves, then we quit (terminal node)
     alpha: Option<f32>,
     beta: Option<f32>,
@@ -67,7 +67,7 @@ pub fn negamax(
 
     let opp = player.opponent();
     if valid_moves.count == 0 {
-        if previousPlayerPlayed {
+        if previous_player_has_played {
             return calculate_heuristic(board, player);
         } else {
             return negamax(board, opp, depth - 1, true, current_alpha, beta);
