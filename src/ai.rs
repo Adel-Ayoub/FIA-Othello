@@ -15,36 +15,27 @@ const OTHELLO_WEIGHTS: [[i32; 8]; 8] = [
 ];
 
 pub fn calculate_best_move(board: Board, valid_moves: CellList, player: Player) -> Move {
-    let mut max: f32 = (-1 as f32)
-        * negamax(
-            get_board_after_move(&board, player, valid_moves.list[0]),
-            player,
-            8,
-            false,
-            None,
-            None,
-        );
+    let mut max: Option<f32> = None;
+    let mut max_index: Option<usize> = None;
 
-    let mut max_index = 0;
-
-    for i in 1..valid_moves.count {
+    for i in 0..valid_moves.count {
         let val = (-1 as f32)
             * negamax(
                 get_board_after_move(&board, player, valid_moves.list[i]),
                 player.opponent(),
-                4,
+                8,
                 false,
                 None,
                 None,
             );
 
-        if val > max {
-            max = val;
-            max_index = i
+        if max_index.is_none() || val > max.unwrap() {
+            max = Some(val);
+            max_index = Some(i);
         }
     }
 
-    return valid_moves.list[max_index];
+    return valid_moves.list[max_index.unwrap()];
 }
 
 pub fn negamax(
