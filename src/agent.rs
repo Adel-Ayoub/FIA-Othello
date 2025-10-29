@@ -1,8 +1,10 @@
+use egui::Vec2;
 use num_enum::TryFromPrimitive;
 use rand::Rng;
 use std::sync::mpsc;
 
 use crate::board::Board;
+use crate::board::Cell;
 use crate::board::Player;
 use crate::common::CellList;
 use crate::referee::Referee;
@@ -38,6 +40,17 @@ pub struct Agent {
     valid_moves: CellList,
     referee: Referee,
 }
+
+const OTHELLO_WEIGHTS: [[i32; 8]; 8] = [
+    [7, 2, 5, 4, 4, 5, 2, 7],
+    [2, 1, 3, 3, 3, 3, 1, 2],
+    [5, 3, 5, 5, 5, 5, 3, 5],
+    [4, 3, 5, 6, 6, 5, 3, 4],
+    [4, 3, 5, 6, 6, 5, 3, 4],
+    [5, 3, 5, 5, 5, 5, 3, 5],
+    [2, 1, 3, 3, 3, 3, 1, 2],
+    [7, 2, 5, 4, 4, 5, 2, 7],
+];
 
 impl Agent {
     pub fn new(
@@ -116,77 +129,88 @@ impl Agent {
         let mut optimal_move = (Board::SIZE, Board::SIZE);
         let mut optimal_score = f32::NEG_INFINITY;
         let mut selection_count = 0; // Track number of equally good moves found
+        let mut depth2: Vec<String> = Vec::new();
 
-        let mut row = 0;
-        let mut col = 0;
-        while row < Board::SIZE {
-            while col < Board::SIZE {
+        let mut valid_moves = CellList::default();
+        if self
+            .referee
+            .find_all_valid_moves(board, player, &mut valid_moves)
+        {
+            for next_move in valid_moves.iter() {
                 let mut new_board = board.clone();
+                let mut flip_cells = CellList::default();
+                self.referee
+                    .find_flip_cells_for_move(board, player, next_move, &mut flip_cells);
+                Referee::apply_move(&mut new_board, player, next_move, &flip_cells);
 
-                (row, col) =
-                    self.referee
-                        .find_and_apply_next_valid_move(&mut new_board, player, (row, col));
+                *allocation_count += 1;
 
-                if row < Board::SIZE && col < Board::SIZE {
-                    *allocation_count += 1;
+                // the evaluated score of this potential move is...
+                let board_score =
+                    // ...(depending on how far we want to think into the future)...
+                    if recursion_depth == 1 {
 
-                    // the evaluated score of this potential move is...
-                    let board_score =
-                        // ...(depending on how far we want to think into the future)...
-                        if recursion_depth == 1 {
+                        // ...either how good it would make the board for us now...
+                        self.evaluate_board(&new_board, player)
 
-                            // ...either how good it would make the board for us now...
-                            self.evaluate_board(&new_board, player)
+                    } else {
 
-                        } else {
+                        // ...or how good the board will become if the opponent makes their best move next...
+                        let (_opponent_move, opponent_score) = self.find_best_move_recursive(&new_board, player.opponent(), recursion_depth - 1, allocation_count);
 
-                            // ...or how good the board will become if the opponent makes their best move next...
-                            let (_opponent_move, opponent_score) = self.find_best_move_recursive(&new_board, player.opponent(), recursion_depth - 1, allocation_count);
+                        // ...and since this is a symmetric, zero-sum game,
+                        // how good it is for us is the inverse of how good it is for them
+                        -opponent_score
+                    };
 
-                            // ...and since this is a symmetric, zero-sum game,
-                            // how good it is for us is the inverse of how good it is for them
-                            -opponent_score
-                        };
-
-                    if optimal_move == (Board::SIZE, Board::SIZE) {
-                        // any move is better than no move
-                        optimal_score = board_score;
-                        optimal_move = (row, col);
-
-                        selection_count = 1;
-                    } else if board_score == optimal_score {
-                        // online reservoir sampling ensures equally good moves have equal chance of getting picked
-                        selection_count += 1;
-                        let replacement_probability = 1.0 / selection_count as f64;
-                        if self.rng.random_bool(replacement_probability) {
-                            optimal_score = board_score;
-                            optimal_move = (row, col);
-                        }
-                    } else if board_score > optimal_score {
-                        // this is for sure the best move so far
-                        optimal_score = board_score;
-                        optimal_move = (row, col);
-
-                        selection_count = 1;
-                    }
+                if recursion_depth == 2 {
+                    depth2.push(format!("{:?}: {:}", next_move, board_score));
                 }
 
-                col += 1;
-            }
+                if optimal_move == (Board::SIZE, Board::SIZE) {
+                    // any move is better than no move
+                    optimal_score = board_score;
+                    optimal_move = next_move;
 
-            row += 1;
-            col = 0;
+                    selection_count = 1;
+                } else if board_score == optimal_score {
+                    // online reservoir sampling ensures equally good moves have equal chance of getting picked
+                    selection_count += 1;
+                    let replacement_probability = 1.0 / selection_count as f64;
+                    if self.rng.random_bool(replacement_probability) {
+                        optimal_score = board_score;
+                        optimal_move = next_move;
+                    }
+                } else if board_score > optimal_score {
+                    // this is for sure the best move so far
+                    optimal_score = board_score;
+                    optimal_move = next_move;
+
+                    selection_count = 1;
+                }
+            }
+        }
+
+        if recursion_depth == 2 && !depth2.is_empty() {
+            println!("depth 2 : {}", depth2.join(", "));
         }
 
         (optimal_move, optimal_score)
     }
 
     // for now, the evaluation is only based on the number of pieces
-    // TODO: add heuristics, such as strong positions
+    // TODO: add heuristics, such as positions
     // TODO: add end-of-game awareness
-    fn evaluate_board(&mut self, board: &Board, player: Player) -> f32 {
-        let (player_count, opponent_count) = Referee::count_disks(board, player);
-
-        player_count as f32 - opponent_count as f32
+    fn evaluate_board(&self, board: &Board, player: Player) -> f32 {
+        let mut sum = 0;
+        for i in 0..Board::SIZE {
+            for j in 0..Board::SIZE {
+                match board.grid[i][j] {
+                    Cell::Taken(p) if p == player => sum += OTHELLO_WEIGHTS[i][j],
+                    _ => {}
+                }
+            }
+        }
+        sum as f32
     }
 }

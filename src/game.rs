@@ -194,6 +194,12 @@ impl Game {
         ) {
             Referee::apply_move(&mut self.board, player, next_move, &self.flip_cells);
 
+            let (black_count, white_count) = count_pieces(&self.board);
+            println!(
+                "Turn score - Black: {}, White: {}",
+                black_count, white_count
+            );
+
             let opponent = player.opponent();
 
             if self
@@ -338,6 +344,23 @@ impl Game {
 
         result
     }
+}
+
+pub fn count_pieces(board: &Board) -> (usize, usize) {
+    let mut black_count = 0;
+    let mut white_count = 0;
+
+    for row in 0..8 {
+        for col in 0..8 {
+            match board.grid[row][col] {
+                Cell::Taken(Player::Black) => black_count += 1,
+                Cell::Taken(Player::White) => white_count += 1,
+                Cell::Empty => {}
+            }
+        }
+    }
+
+    (black_count, white_count)
 }
 
 impl eframe::App for Game {
@@ -515,6 +538,10 @@ impl eframe::App for Game {
             };
 
             ui.label(message);
+
+            let (black_score, white_score) = count_pieces(&self.board);
+            ui.label(format!("Black: {}", black_score));
+            ui.label(format!("White: {}", white_score));
 
             ui.separator();
 
