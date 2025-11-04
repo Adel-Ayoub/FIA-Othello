@@ -223,7 +223,6 @@ impl Agent {
     }
 
     // for now, the evaluation is only based on the number of pieces
-    // TODO: add heuristics, such as positions
     // TODO: add end-of-game awareness
     fn evaluate_board(&self, board: &Board, player: Player) -> f32 {
         let mut sum = 0;
