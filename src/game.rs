@@ -250,6 +250,9 @@ impl Game {
                         AiType::Minimax => {
                             format!("Minimax lvl {}", self.player_options[i].ai_recursion_depth)
                         }
+                        AiType::AlphaBeta => {
+                            format!("AlphaBeta lvl {}", self.player_options[i].ai_recursion_depth)
+                        }
                     }
                 } else {
                     "Human".to_string()
