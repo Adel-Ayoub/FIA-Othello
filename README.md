@@ -55,21 +55,21 @@ Maintenance:
 mouse/keyboard ─┐                                   ┌─ window (egui/eframe)
                 ▼                                   ▼
 +----------------------+         UI events      +-------------------------+
-|        GUI           | ─────────────────────▶ |  Game (game.rs)        |
-|  (egui/eframe app)   | ◀────────────────────── | draws board + sidebar  |
+|        GUI           | ─────────────────────▶ |  Game (game.rs)         |
+|  (egui/eframe app)   | ◀──────────────────────| draws board + sidebar   |
 +----------------------+                         +-------------------------+
                   │                                         │
                   │                                         ▼
                   │                          +----------------------------+
-                  │                          | Referee (referee.rs)      |
+                  │                          | Referee (referee.rs)       |
                   │                          | validate moves, outcomes   |
                   │                          +----------------------------+
                   │                                         │
                   ▼                                         ▼
         +------------------+                 channels        +------------------+
-        |  Agent (agent.rs)|  ◀════ mpsc ════▶              |  AI thread       |
-        | Random/Negamax   |
-        |     /Minimax     |  ════ mpsc ════▶                |  picks next move  |
+        |  Agent (agent.rs)|  ◀════ mpsc ════▶               |  AI thread       |
+        | Random/Negamax   |                                 |                  |
+        |     /Minimax     |  ════ mpsc ════▶                |  picks next move |
         +------------------+                                 +------------------+
                   │
                   ▼
@@ -110,27 +110,6 @@ In the right panel of the UI you can:
 - statistics: collect win/tie/loss aggregates by matchup
 
 ---
-
- 
- 
-
-## Development
-
-```sh
-# Dev build and run
-make build
-make run
-
-# Release build and run
-make release
-make run-release
-
-# Tests and checks
-make test
-make lint
-make fmt
-make check
-```
 
 ### Platform notes
 
