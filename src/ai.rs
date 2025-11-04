@@ -237,4 +237,105 @@ impl Agent {
         }
         sum as f32
     }
+
+    // returns (the optimal move, evaluation score given to that move)
+    // Implements negamax with alpha-beta pruning
+    fn find_best_move_recursive_alpha_beta(
+        &mut self,
+        board: &Board,
+        player: Player,
+        recursion_depth: usize,
+        allocation_count: &mut i32,
+        mut alpha: f32,
+        beta: f32,
+    ) -> (Move, f32) {
+        let mut optimal_move = (Board::SIZE, Board::SIZE);
+        let mut optimal_score = f32::NEG_INFINITY;
+        let mut selection_count = 0; // Track number of equally good moves found
+        let mut depth2: Vec<String> = Vec::new();
+
+        let mut valid_moves = CellList::default();
+        if self
+            .referee
+            .find_all_valid_moves(board, player, &mut valid_moves)
+        {
+            for next_move in valid_moves.iter() {
+                let mut new_board = board.clone();
+                let mut flip_cells = CellList::default();
+                self.referee
+                    .find_flip_cells_for_move(board, player, next_move, &mut flip_cells);
+                Referee::apply_move(&mut new_board, player, next_move, &flip_cells);
+
+                *allocation_count += 1;
+
+                // the evaluated score of this potential move is...
+                let board_score =
+                    // ...(depending on how far we want to think into the future)...
+                    if recursion_depth == 1 {
+                        // ...either how good it would make the board for us now...
+                        self.evaluate_board(&new_board, player)
+                    } else {
+                        // ...or how good the board will become if the opponent makes their best move next...
+                        let (_opponent_move, opponent_score) = self.find_best_move_recursive_alpha_beta(
+                            &new_board,
+                            player.opponent(),
+                            recursion_depth - 1,
+                            allocation_count,
+                            -beta,   // Negate and swap for opponent
+                            -alpha,  // Negate and swap for opponent
+                        );
+
+                        // ...and since this is a symmetric, zero-sum game,
+                        // how good it is for us is the inverse of how good it is for them
+                        -opponent_score
+                    };
+
+                if recursion_depth == 2 {
+                    depth2.push(format!("{:?}: {:}", next_move, board_score));
+                }
+
+                if optimal_move == (Board::SIZE, Board::SIZE) {
+                    // any move is better than no move
+                    optimal_score = board_score;
+                    optimal_move = next_move;
+                    selection_count = 1;
+
+                    // Alpha-beta pruning: update alpha
+                    alpha = alpha.max(board_score);
+                } else if board_score == optimal_score {
+                    // online reservoir sampling ensures equally good moves have equal chance of getting picked
+                    selection_count += 1;
+                    let replacement_probability = 1.0 / selection_count as f64;
+                    if self.rng.random_bool(replacement_probability) {
+                        optimal_score = board_score;
+                        optimal_move = next_move;
+                    }
+
+                    // Alpha-beta pruning: update alpha
+                    alpha = alpha.max(board_score);
+                } else if board_score > optimal_score {
+                    // this is for sure the best move so far
+                    optimal_score = board_score;
+                    optimal_move = next_move;
+                    selection_count = 1;
+
+                    // Alpha-beta pruning: update alpha
+                    alpha = alpha.max(board_score);
+                }
+
+                // Alpha-beta pruning: beta cutoff
+                // If alpha >= beta, we can prune the remaining branches
+                // because the opponent will never choose this branch (it's worse for them)
+                if alpha >= beta {
+                    break; // Beta cutoff - prune remaining moves
+                }
+            }
+        }
+
+        if recursion_depth == 2 && !depth2.is_empty() {
+            println!("depth 2 : {}", depth2.join(", "));
+        }
+
+        (optimal_move, optimal_score)
+    }
 }
