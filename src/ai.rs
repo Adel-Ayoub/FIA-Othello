@@ -30,6 +30,7 @@ pub struct MoveResult {
 pub enum AiType {
     Random,
     Minimax,
+    AlphaBeta,
 }
 
 pub struct Agent {
