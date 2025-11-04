@@ -1,4 +1,3 @@
-use egui::Vec2;
 use num_enum::TryFromPrimitive;
 use rand::Rng;
 use std::sync::mpsc;
@@ -203,10 +202,10 @@ impl Agent {
     // TODO: add end-of-game awareness
     fn evaluate_board(&self, board: &Board, player: Player) -> f32 {
         let mut sum = 0;
-        for i in 0..Board::SIZE {
-            for j in 0..Board::SIZE {
+        for (i, row_weights) in OTHELLO_WEIGHTS.iter().enumerate().take(Board::SIZE) {
+            for (j, weight) in row_weights.iter().enumerate().take(Board::SIZE) {
                 match board.grid[i][j] {
-                    Cell::Taken(p) if p == player => sum += OTHELLO_WEIGHTS[i][j],
+                    Cell::Taken(p) if p == player => sum += *weight,
                     _ => {}
                 }
             }

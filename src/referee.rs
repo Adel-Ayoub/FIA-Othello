@@ -99,6 +99,7 @@ impl Referee {
         }
     }
 
+    #[allow(dead_code)]
     pub fn find_and_apply_next_valid_move(
         &mut self,
         board: &mut Board,
