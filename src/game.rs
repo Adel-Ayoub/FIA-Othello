@@ -326,7 +326,7 @@ impl Game {
         ai_type: AiType,
         player: Player,
     ) -> AiType {
-        let options = ["Random".to_string(), "Minimax".to_string()];
+        let options = ["Random".to_string(), "Minimax".to_string(), "AlphaBeta".to_string()];
 
         let mut result = ai_type;
 
