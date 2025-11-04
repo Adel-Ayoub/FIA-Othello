@@ -67,9 +67,9 @@ mouse/keyboard ─┐                                   ┌─ window (egui/efra
                   │                                         │
                   ▼                                         ▼
         +------------------+                 channels        +------------------+
-        |  Agent (agent.rs)|  ◀════ mpsc ════▶               |  AI thread       |
+        |  Agent (ai.rs)   |  ◀════ mpsc ════▶               |  AI thread       |
         | Random/Negamax   |                                 |                  |
-        |     /Minimax     |  ════ mpsc ════▶                |  picks next move |
+        |     /Alpha-Beta  |  ════ mpsc ════▶                |  picks next move |
         +------------------+                                 +------------------+
                   │
                   ▼
@@ -118,4 +118,4 @@ In the right panel of the UI you can:
 
 ## License
 
-MIT License.
+MIT License - see [LICENSE](LICENSE) file for details.
