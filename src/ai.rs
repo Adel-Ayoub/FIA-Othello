@@ -75,6 +75,11 @@ impl Agent {
                     move_request.player,
                     move_request.recursion_depth,
                 ),
+                AiType::AlphaBeta => self.find_best_move_using_alpha_beta(
+                    &move_request.board,
+                    move_request.player,
+                    move_request.recursion_depth,
+                ),
             };
 
             if move_request.pace_response {
