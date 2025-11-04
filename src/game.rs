@@ -312,7 +312,8 @@ impl Game {
             )
             .changed()
             && self.player_options[player as usize].ai_enabled
-            && self.player_options[player as usize].ai_type == AiType::Minimax
+            && (self.player_options[player as usize].ai_type == AiType::Minimax
+                || self.player_options[player as usize].ai_type == AiType::AlphaBeta)
         {
             self.ai_setting_changed();
         }
