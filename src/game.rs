@@ -6,10 +6,10 @@ use std::time::Instant;
 
 use eframe::egui;
 
-use crate::agent::Agent;
-use crate::agent::AiType;
-use crate::agent::MoveRequest;
-use crate::agent::MoveResult;
+use crate::ai::Agent;
+use crate::ai::AiType;
+use crate::ai::MoveRequest;
+use crate::ai::MoveResult;
 use crate::board::Board;
 use crate::board::Cell;
 use crate::board::Player;
