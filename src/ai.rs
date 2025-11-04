@@ -121,6 +121,25 @@ impl Agent {
         optimal_move
     }
 
+    // uses negamax with alpha-beta pruning for faster, deeper search
+    fn find_best_move_using_alpha_beta(
+        &mut self,
+        board: &Board,
+        player: Player,
+        recursion_depth: usize,
+    ) -> Move {
+        let mut allocation_count = 0;
+        let (optimal_move, _optimal_score) = self.find_best_move_recursive_alpha_beta(
+            board,
+            player,
+            recursion_depth,
+            &mut allocation_count,
+            f32::NEG_INFINITY,
+            f32::INFINITY,
+        );
+        optimal_move
+    }
+
     // returns (the optimal move, evaluation score given to that move)
     // TODO: add alpha-beta pruning
     // TODO: it's silly to think very hard about the first few moves
